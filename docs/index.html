@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>GeoJSON Viewer</title>
+  <style>
+    #map {
+      width: 100%;
+      height: 800px;
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-hash@0.2.1/leaflet-hash.js"></script>
+</head>
+
+<!--back01 D&DでGeoJSONを表示できるようになったもの-->>
+
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map');
+    var hash = new L.Hash(map);
+    L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg', {
+      attribution: 'Map data © <a href="https://maps.gsi.go.jp/development/ichiran.html">地理院タイル</a>',
+      maxZoom: 18
+    }).addTo(map);
+
+    var geojson_para; // 平行移動したGeoJSONレイヤーを格納する変数
+
+    function handleFileSelect(evt) {
+      var file = evt.dataTransfer.files[0];
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var contents = e.target.result;
+
+// 移動前のGeoJSONレイヤーを作成し、地図上に追加する
+geojsonlayer = L.geoJSON(JSON.parse(contents), {
+  style: function(feature) {
+    return {
+      color: "red"
+    };
+  },
+  onEachFeature: function(feature, layer) {
+    layer.bindPopup(feature.properties.筆ID);
+  }
+}).addTo(map);
+
+// GeoJSONの平行移動距離を指定
+const dx = 0.2; // x軸方向の移動量
+const dy = 0.2; // y軸方向の移動量
+
+// 元のGeoJSONレイヤーを地図から削除する
+map.removeLayer(geojsonlayer);
+
+// GeoJSONレイヤーを作成する
+var layer = L.geoJSON(JSON.parse(contents));
+
+// GeoJSONのマルチポリゴンレイヤーを平行移動する
+layer.eachLayer(function(sublayer) {
+  var geometry = sublayer.feature.geometry;
+  if (geometry.type === "MultiPolygon") {
+    for (var i = 0; i < geometry.coordinates.length; i++) {
+      for (var j = 0; j < geometry.coordinates[i].length; j++) {
+        for (var k = 0; k < geometry.coordinates[i][j].length; k++) {
+          geometry.coordinates[i][j][k][0] += dx;
+          geometry.coordinates[i][j][k][1] += dy;
+        }
+      }
+    }
+  }
+});
+
+// 平行移動したGeoJSONレイヤーを新しい変数に格納する
+geojson_para = L.geoJSON(layer.toGeoJSON(), {
+  style: function(feature) {
+    return {
+      color: "red"
+    };
+  },
+  onEachFeature: function(feature, layer) {
+    layer.bindPopup(feature.properties.筆ID);
+  }
+}).addTo(map);
+
+
+        // GeoJSONの中心座標を求める
+        var features = JSON.parse(contents).features;
+        var bounds = features.reduce(function(bounds, feature) {
+          return bounds.extend(L.geoJSON(feature).getBounds());
+        }, L.latLngBounds([]));
+        var center = bounds.getCenter();
+
+        // 地図の中心座標をGeoJSONの中心座標に変更する
+        map.setView(center, map.getZoom());
+      
+      };
+      reader.readAsText(file);
+      evt.preventDefault();
+    }
+
+    var dropZone = document.getElementById('map');
+    dropZone.addEventListener('dragover', function(evt) {
+      evt.preventDefault();
+    }, false);
+    dropZone.addEventListener('drop', handleFileSelect, false);
+  </script>
+
+</body>
+</html>
