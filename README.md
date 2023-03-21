@@ -14,3 +14,5 @@
 1.のところで、挫折ｗ  
 というか、D&Dで読み込みができるが、並行移動すらできないｗ
 
+[20230321現段階](https://github.com/wata909/geojson_affine/blob/main/docs/index.html)
+[デモ](https://wata909.github.io/geojson_affine/#12/36.1614/139.8846)
